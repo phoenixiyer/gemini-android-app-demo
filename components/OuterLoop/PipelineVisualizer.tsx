@@ -1,17 +1,17 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Package, Smartphone, ShieldCheck, CheckCircle2, Rocket, Clock, XCircle, AlertTriangle } from 'lucide-react'
+import { Package, Smartphone, ShieldCheck, CheckCircle2, Rocket, Clock, XCircle, AlertTriangle, Zap, Activity } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface PipelineVisualizerProps {
     isActive: boolean
     optimizationEnabled: boolean
-    failedStep?: string | null // 'unit' | 'lint' etc.
-    isHealing?: boolean
+    failedStep: string | null
+    isHealing: boolean
 }
 
-export default function PipelineVisualizer({ isActive, optimizationEnabled, failedStep = null, isHealing = false }: PipelineVisualizerProps) {
+export default function PipelineVisualizer({ isActive, optimizationEnabled, failedStep, isHealing }: PipelineVisualizerProps) {
     const steps = [
         { id: 'lint', label: 'Static Analysis', icon: ShieldCheck, color: 'bg-yellow-500' },
         { id: 'unit', label: 'Unit Tests', icon: Package, color: 'bg-blue-500' },
@@ -94,6 +94,49 @@ export default function PipelineVisualizer({ isActive, optimizationEnabled, fail
                         </div>
                     )
                 })}
+            </div>
+            {/* Header / Circuit Breaker Visual */}
+            <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center space-x-3">
+                    <div className={cn("p-2 rounded-lg transition-colors duration-500",
+                        failedStep ? "bg-red-500/20" : isHealing ? "bg-yellow-500/20" : isActive ? "bg-blue-500/20" : "bg-slate-700/50"
+                    )}>
+                        {failedStep ? <AlertTriangle className="w-6 h-6 text-red-500 animate-pulse" /> :
+                            isHealing ? <Activity className="w-6 h-6 text-yellow-500 animate-spin" /> :
+                                <Rocket className="w-6 h-6 text-blue-400" />}
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-bold text-white tracking-tight">CI/CD Pipeline</h2>
+                        <div className="flex items-center space-x-2 text-xs font-mono mt-1">
+                            <span className="text-slate-400">STATUS:</span>
+                            <span className={cn("uppercase font-bold tracking-wider",
+                                failedStep ? "text-red-400" : isHealing ? "text-yellow-400" : "text-green-400"
+                            )}>
+                                {failedStep ? "CIRCUIT OPEN (FAILED)" : isHealing ? "CIRCUIT HALF-OPEN (HEALING)" : "CIRCUIT CLOSED (HEALTHY)"}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Circuit Breaker Icon (Visual Metaphor) */}
+                <div className="flex flex-col items-end opacity-70">
+                    <div className="flex items-center space-x-1 mb-1">
+                        <Zap className={cn("w-4 h-4", failedStep ? "text-red-500" : "text-green-500")} />
+                        <span className="text-[10px] uppercase font-bold text-slate-400">Breaker Status</span>
+                    </div>
+                    <div className="flex items-center space-x-1">
+                        <div className={cn("w-2 h-2 rounded-full", failedStep ? "bg-red-500 shadow-[0_0_10px_red]" : "bg-slate-800")} />
+                        <div className="w-8 h-px bg-slate-600 relative overflow-hidden">
+                            {/* Spark animation when open */}
+                            {failedStep && <motion.div
+                                className="absolute inset-0 bg-red-500 w-full"
+                                animate={{ x: [-32, 32] }}
+                                transition={{ repeat: Infinity, duration: 0.2 }}
+                            />}
+                        </div>
+                        <div className={cn("w-2 h-2 rounded-full", !failedStep ? "bg-green-500 shadow-[0_0_10px_green]" : "bg-slate-800")} />
+                    </div>
+                </div>
             </div>
             {/* Optimization Meter */}
             <motion.div

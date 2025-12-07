@@ -10,10 +10,12 @@ import LogConsole from '@/components/OuterLoop/LogConsole'
 import ApprovalModal from '@/components/ApprovalModal'
 import GhostOverlay from '@/components/InnerLoop/GhostOverlay'
 import ThinkingCanvas from '@/components/InnerLoop/ThinkingCanvas'
-
-// ... existing imports
-
-// ... existing imports
+import ContextMatrix from '@/components/InnerLoop/ContextMatrix'
+import AgentSwarm from '@/components/InnerLoop/AgentSwarm'
+import ReasoningTree from '@/components/InnerLoop/ReasoningTree'
+import ReleaseMonitor from '@/components/OuterLoop/ReleaseMonitor'
+import AISentinel from '@/components/OuterLoop/AISentinel'
+import InstantRCA from '@/components/OuterLoop/InstantRCA'
 import MetricsDashboard from '@/components/OuterLoop/MetricsDashboard'
 import { Sparkles, Zap, ArrowRight, Play, Rocket, CheckCircle2, XCircle, RotateCcw, BarChart3 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -86,6 +88,10 @@ export default function Home() {
   const [pipelineHealing, setPipelineHealing] = useState(false)
   const [optimized, setOptimized] = useState(false)
   const [logStatus, setLogStatus] = useState<'idle' | 'running' | 'error' | 'success'>('idle')
+
+  // Phase 9: Outer Loop Intelligence
+  const [releaseStatus, setReleaseStatus] = useState<'idle' | 'monitor' | 'anomaly' | 'rollback' | 'rca'>('idle')
+  const [canaryTraffic, setCanaryTraffic] = useState(0)
 
   // Modals & Overlays
   const [showApproval, setShowApproval] = useState(false)
@@ -175,7 +181,6 @@ export default function Home() {
     setShowApproval(false)
 
     // 5.5 Thinking Phase (DevOps)
-    // Actually, let's skip visual thinking here to keep pace, or add a small one
     setPipelineHealing(true)
 
     setTimeout(() => {
@@ -191,15 +196,39 @@ export default function Home() {
     }, 1500)
   }
 
-  // 6. Go to App Store
+  // 6. Go to App Store (Actually trigger Canary Simulation)
   const handleFinish = () => {
-    setStage(8)
-    setMobileState('install')
+    setStage(8) // "Experience It" / "Release Mode"
+    setReleaseStatus('monitor')
+    setCanaryTraffic(0)
+
+    // Simulate Traffic Ramp
+    let t = 0
+    const interval = setInterval(() => {
+      t += 5
+      setCanaryTraffic(t)
+
+      // DRAMA: At 25%, trigger anomaly
+      if (t >= 25) {
+        clearInterval(interval)
+        setReleaseStatus('anomaly')
+
+        // Auto-Rollback after 2s
+        setTimeout(() => {
+          setReleaseStatus('rollback')
+          setCanaryTraffic(0) // Rollback traffic
+
+          // Show RCA after rollback completes
+          setTimeout(() => {
+            setReleaseStatus('rca')
+          }, 3000)
+        }, 2500)
+      }
+    }, 400)
   }
 
-  // 7. Install & Reset Flow
+  // 7. Install & Reset Flow (Used during normal mobile install simulation on right panel, if we ever used it there)
   const handleInstall = () => {
-    // After install animation (handled in component), switch to full premium view
     setTimeout(() => {
       setMobileState('premium')
     }, 2500)
@@ -219,6 +248,8 @@ export default function Home() {
     setOptimized(false)
     setLogStatus('idle')
     setThinkingMode(null)
+    setReleaseStatus('idle')
+    setCanaryTraffic(0)
   }
 
   return (
@@ -247,7 +278,7 @@ export default function Home() {
                   stage === 1 ? "The Inner Loop" :
                     stage === 2 ? <span className="text-red-500">System Failure</span> :
                       stage === 3 ? "Refining UI" :
-                        stage === 8 ? "Experience It" :
+                        stage === 8 ? "Canary Release" :
                           "The Outer Loop"}
               </h1>
               <p className="text-slate-400">
@@ -258,7 +289,7 @@ export default function Home() {
                 {stage === 5 && "Pipeline stalled. Inspecting logs..."}
                 {stage === 6 && "AI Proposal: Human review required."}
                 {stage === 7 && "Deployment successful. Architecture optimized."}
-                {stage === 8 && "Download and test the final build."}
+                {stage === 8 && "Monitoring canary rollout stability..."}
                 {stage === 9 && "Quantifying the value of AI Native development."}
               </p>
             </motion.div>
@@ -276,10 +307,17 @@ export default function Home() {
                     exit={{ opacity: 0 }}
                     className="absolute inset-0 z-50 rounded-xl overflow-hidden"
                   >
-                    <ThinkingCanvas mode={thinkingMode} />
+                    {/* Dynamic Visualizer based on Mode */}
+                    {thinkingMode === 'gen' ? (
+                      <ContextMatrix />
+                    ) : thinkingMode === 'fix' ? (
+                      <AgentSwarm />
+                    ) : (
+                      <ReasoningTree />
+                    )}
                   </motion.div>
 
-                  {/* Contrast: The Old Way */}
+                  {/* Contrast: The Old Way (Always show Ghost) */}
                   <motion.div
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -292,7 +330,20 @@ export default function Home() {
               )}
             </AnimatePresence>
 
-            {stage === 9 ? (
+            {/* Display Logic Switch */}
+            {stage === 8 && releaseStatus !== 'idle' ? (
+              // Phase 9: Intelligent Outer Loop Visualization
+              <div className="w-full h-full flex items-center justify-center relative">
+                {releaseStatus === 'monitor' || releaseStatus === 'anomaly' || releaseStatus === 'rollback' ? (
+                  <>
+                    <ReleaseMonitor trafficV2={canaryTraffic} isAnomaly={releaseStatus === 'anomaly'} />
+                    <AISentinel status={releaseStatus === 'monitor' ? 'scanning' : releaseStatus === 'anomaly' ? 'detected' : 'rollback'} />
+                  </>
+                ) : (
+                  <InstantRCA />
+                )}
+              </div>
+            ) : stage === 9 ? (
               <MetricsDashboard />
             ) : stage < 5 ? (
               <VirtualIDE
@@ -363,17 +414,17 @@ export default function Home() {
                 className="flex items-center space-x-2 bg-white text-black hover:bg-slate-200 px-6 py-3 rounded-full font-bold transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)]"
               >
                 <Rocket className="w-5 h-5" />
-                <span>Go to App Store</span>
+                <span>Start Canary Release</span>
               </button>
             )}
 
-            {stage === 8 && mobileState === 'premium' && (
+            {stage === 8 && releaseStatus === 'rca' && (
               <button
                 onClick={handleViewMetrics}
                 className="flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-green-500 text-white px-6 py-3 rounded-full font-bold transition-all shadow-lg animate-bounce"
               >
                 <BarChart3 className="w-5 h-5" />
-                <span>View Analytics</span>
+                <span>View ROI Dashboard</span>
               </button>
             )}
 
@@ -399,8 +450,8 @@ export default function Home() {
           )} />
 
           <AnimatePresence mode="wait">
-            {/* SHOW PHONE: Stages 1, 2, 3, 4, 7 (Success), 8 (Install) */}
-            {(stage < 5 || (stage >= 7 && stage !== 9)) && (
+            {/* SHOW PHONE: Stages 1, 2, 3, 4, 7 (Success) */}
+            {(stage < 5 || stage === 7) && (
               <motion.div
                 key="mobile"
                 initial={{ x: 50, opacity: 0 }}
@@ -425,13 +476,8 @@ export default function Home() {
               </motion.div>
             )}
 
-            {/* SHOW METRICS HIGHLIGHTS (Mini) or just nothing on right if Metrics is on left?
-                    Wait, I put MetricsDashboard on the LEFT panel (replacing IDE).
-                    So what goes on RIGHT panel in Stage 9?
-                    Maybe a giant Trophy or just keep the Phone?
-                    Let's keep the Phone on the right to show the "Result" while metrics show the "Data".
-                */}
-            {stage === 9 && (
+            {/* Stage 8 + 9: Keep Mobile on Right or Show Success Trophy? Let's keep Mobile Premium */}
+            {(stage === 8 || stage === 9) && (
               <motion.div
                 key="mobile-final"
                 initial={{ x: 50, opacity: 0 }}
