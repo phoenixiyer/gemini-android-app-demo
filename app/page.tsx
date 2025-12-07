@@ -8,7 +8,14 @@ import MobileSimulator from '@/components/InnerLoop/MobileSimulator'
 import PipelineVisualizer from '@/components/OuterLoop/PipelineVisualizer'
 import LogConsole from '@/components/OuterLoop/LogConsole'
 import ApprovalModal from '@/components/ApprovalModal'
-import { Sparkles, Zap, ArrowRight, Play, Rocket, CheckCircle2, XCircle, RotateCcw } from 'lucide-react'
+import GhostOverlay from '@/components/InnerLoop/GhostOverlay'
+import ThinkingCanvas from '@/components/InnerLoop/ThinkingCanvas'
+
+// ... existing imports
+
+// ... existing imports
+import MetricsDashboard from '@/components/OuterLoop/MetricsDashboard'
+import { Sparkles, Zap, ArrowRight, Play, Rocket, CheckCircle2, XCircle, RotateCcw, BarChart3 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const CODE_STEP_1 = `
@@ -66,7 +73,7 @@ fun TripDetailsScreen() {
 
 export default function Home() {
   // Stages:
-  // 1: Gen, 2: Heal, 3: Refine, 4: Deploy, 5: Fail (Logs), 6: Approvable, 7: Healed, 8: Installed/ShowOff
+  // 1: Gen, 2: Heal, 3: Refine, 4: Deploy, 5: Fail (Logs), 6: Approvable, 7: Healed, 8: Installed/ShowOff, 9: Metrics
   const [stage, setStage] = useState(1)
   const [mobileState, setMobileState] = useState<'skeleton' | 'basic' | 'premium' | 'error' | 'install'>('skeleton')
   const [ideStatus, setIdeStatus] = useState<'idle' | 'analyzing' | 'fixing'>('idle')
@@ -80,51 +87,69 @@ export default function Home() {
   const [optimized, setOptimized] = useState(false)
   const [logStatus, setLogStatus] = useState<'idle' | 'running' | 'error' | 'success'>('idle')
 
-  // Modals
+  // Modals & Overlays
   const [showApproval, setShowApproval] = useState(false)
+  const [thinkingMode, setThinkingMode] = useState<'gen' | 'fix' | 'refine' | 'pipeline' | null>(null)
 
   // 1. Generate & Crash
   const handleGenerate = () => {
-    setIsTyping(true)
+    // 1.5 Thinking Phase
+    setThinkingMode('gen')
     setTimeout(() => {
-      setMobileState('basic')
-      setIsTyping(false)
-
-      // DRAMA: Crash after 1 second
+      setThinkingMode(null)
+      setIsTyping(true)
       setTimeout(() => {
-        setMobileState('error')
-        setCode(CODE_BUGGY)
-        setStage(2)
-      }, 1500)
-    }, 2000)
+        setMobileState('basic')
+        setIsTyping(false)
+
+        // DRAMA: Crash after 1 second
+        setTimeout(() => {
+          setMobileState('error')
+          setCode(CODE_BUGGY)
+          setStage(2)
+        }, 1500)
+      }, 2000)
+    }, 3000) // 3s Thinking
   }
 
   // 2. Auto-Heal (Inner Loop)
   const handleAutoHeal = () => {
-    setIdeStatus('analyzing')
+    // 2.5 Thinking Phase
+    setThinkingMode('fix')
     setTimeout(() => {
-      setIdeStatus('fixing')
-      setIsTyping(true)
-      setCode(CODE_FIXED)
+      setThinkingMode(null)
 
+      setIdeStatus('analyzing')
       setTimeout(() => {
-        setIdeStatus('idle')
-        setIsTyping(false)
-        setMobileState('basic') // Fixed!
-        setStage(3)
-      }, 2000)
-    }, 2000)
+        setIdeStatus('fixing')
+        setIsTyping(true)
+        setCode(CODE_FIXED)
+
+        setTimeout(() => {
+          setIdeStatus('idle')
+          setIsTyping(false)
+          setMobileState('basic') // Fixed!
+          setStage(3)
+        }, 2000)
+      }, 1500)
+    }, 3000) // 3s Thinking
   }
 
   // 3. Make Premium
   const handleEnhance = () => {
-    setCode(CODE_PREMIUM)
-    setIsTyping(true)
+    // 3.5 Thinking Phase
+    setThinkingMode('refine')
     setTimeout(() => {
-      setMobileState('premium')
-      setIsTyping(false)
-      setStage(4) // Ready to deploy
-    }, 2000)
+      setThinkingMode(null)
+
+      setCode(CODE_PREMIUM)
+      setIsTyping(true)
+      setTimeout(() => {
+        setMobileState('premium')
+        setIsTyping(false)
+        setStage(4) // Ready to deploy
+      }, 2000)
+    }, 3000) // 3s Thinking
   }
 
   // 4. Deploy & Fail
@@ -148,6 +173,9 @@ export default function Home() {
   // 5. Human Approves Fix
   const handleApproveFix = () => {
     setShowApproval(false)
+
+    // 5.5 Thinking Phase (DevOps)
+    // Actually, let's skip visual thinking here to keep pace, or add a small one
     setPipelineHealing(true)
 
     setTimeout(() => {
@@ -177,6 +205,11 @@ export default function Home() {
     }, 2500)
   }
 
+  // 8. View Metrics
+  const handleViewMetrics = () => {
+    setStage(9)
+  }
+
   const handleReset = () => {
     setStage(1)
     setMobileState('skeleton')
@@ -185,10 +218,11 @@ export default function Home() {
     setPipelineFailedStep(null)
     setOptimized(false)
     setLogStatus('idle')
+    setThinkingMode(null)
   }
 
   return (
-    <StageContainer currentStage={stage < 5 ? 1 : 2}>
+    <StageContainer currentStage={stage}>
 
       <ApprovalModal
         isOpen={showApproval}
@@ -209,11 +243,12 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
             >
               <h1 className="text-4xl font-bold text-white mb-2">
-                {stage === 1 && "The Inner Loop"}
-                {stage === 2 && <span className="text-red-500">System Failure</span>}
-                {stage === 3 && "Refining UI"}
-                {stage >= 4 && stage < 8 && "The Outer Loop"}
-                {stage === 8 && "Experience It"}
+                {stage === 9 ? "Business Impact" :
+                  stage === 1 ? "The Inner Loop" :
+                    stage === 2 ? <span className="text-red-500">System Failure</span> :
+                      stage === 3 ? "Refining UI" :
+                        stage === 8 ? "Experience It" :
+                          "The Outer Loop"}
               </h1>
               <p className="text-slate-400">
                 {stage === 1 && "Rapidly scaffold prototyping with Gemini Code Assist."}
@@ -224,13 +259,42 @@ export default function Home() {
                 {stage === 6 && "AI Proposal: Human review required."}
                 {stage === 7 && "Deployment successful. Architecture optimized."}
                 {stage === 8 && "Download and test the final build."}
+                {stage === 9 && "Quantifying the value of AI Native development."}
               </p>
             </motion.div>
           </div>
 
           {/* Content Area */}
-          <div className="flex-1 min-h-[400px]">
-            {stage < 5 ? (
+          <div className="flex-1 min-h-[400px] relative">
+            {/* Thinking Overlay & Ghost Contrast */}
+            <AnimatePresence>
+              {thinkingMode && (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0 z-50 rounded-xl overflow-hidden"
+                  >
+                    <ThinkingCanvas mode={thinkingMode} />
+                  </motion.div>
+
+                  {/* Contrast: The Old Way */}
+                  <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    className="absolute top-4 right-4 z-[60]"
+                  >
+                    <GhostOverlay mode={thinkingMode} />
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+
+            {stage === 9 ? (
+              <MetricsDashboard />
+            ) : stage < 5 ? (
               <VirtualIDE
                 code={code}
                 isTyping={isTyping}
@@ -253,30 +317,33 @@ export default function Home() {
             {stage === 1 && mobileState !== 'error' && (
               <button
                 onClick={handleGenerate}
-                className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-full font-bold transition-all shadow-[0_0_20px_rgba(37,99,235,0.5)]"
+                disabled={thinkingMode !== null}
+                className={cn("flex items-center space-x-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-full font-bold transition-all shadow-[0_0_20px_rgba(37,99,235,0.5)]", thinkingMode && "opacity-50 cursor-wait")}
               >
-                <Sparkles className="w-5 h-5" />
-                <span>Generate UI</span>
+                {thinkingMode ? <Sparkles className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
+                <span>{thinkingMode ? "Thinking..." : "Generate UI"}</span>
               </button>
             )}
 
             {stage === 2 && (
               <button
                 onClick={handleAutoHeal}
-                className="flex items-center space-x-2 bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-full font-bold transition-all shadow-[0_0_20px_rgba(220,38,38,0.5)] animate-pulse"
+                disabled={thinkingMode !== null}
+                className={cn("flex items-center space-x-2 bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-full font-bold transition-all shadow-[0_0_20px_rgba(220,38,38,0.5)]", thinkingMode && "opacity-50 cursor-wait animate-none")}
               >
-                <Zap className="w-5 h-5" />
-                <span>Auto-Fix Crash</span>
+                {thinkingMode ? <Zap className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5" />}
+                <span>{thinkingMode ? "Analyzing..." : "Auto-Fix Crash"}</span>
               </button>
             )}
 
             {stage === 3 && (
               <button
                 onClick={handleEnhance}
-                className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-full font-bold transition-all shadow-[0_0_20px_rgba(147,51,234,0.5)]"
+                disabled={thinkingMode !== null}
+                className={cn("flex items-center space-x-2 bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-full font-bold transition-all shadow-[0_0_20px_rgba(147,51,234,0.5)]", thinkingMode && "opacity-50 cursor-wait")}
               >
-                <Zap className="w-5 h-5" />
-                <span>Make it Premium</span>
+                {thinkingMode ? <Zap className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5" />}
+                <span>{thinkingMode ? "Enhancing..." : "Make it Premium"}</span>
               </button>
             )}
 
@@ -300,7 +367,17 @@ export default function Home() {
               </button>
             )}
 
-            {stage === 8 && (
+            {stage === 8 && mobileState === 'premium' && (
+              <button
+                onClick={handleViewMetrics}
+                className="flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-green-500 text-white px-6 py-3 rounded-full font-bold transition-all shadow-lg animate-bounce"
+              >
+                <BarChart3 className="w-5 h-5" />
+                <span>View Analytics</span>
+              </button>
+            )}
+
+            {stage === 9 && (
               <button
                 onClick={handleReset}
                 className="flex items-center space-x-2 bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-full font-bold transition-all"
@@ -323,7 +400,7 @@ export default function Home() {
 
           <AnimatePresence mode="wait">
             {/* SHOW PHONE: Stages 1, 2, 3, 4, 7 (Success), 8 (Install) */}
-            {(stage < 5 || stage >= 7) && (
+            {(stage < 5 || (stage >= 7 && stage !== 9)) && (
               <motion.div
                 key="mobile"
                 initial={{ x: 50, opacity: 0 }}
@@ -347,6 +424,24 @@ export default function Home() {
                 <LogConsole status={logStatus} />
               </motion.div>
             )}
+
+            {/* SHOW METRICS HIGHLIGHTS (Mini) or just nothing on right if Metrics is on left?
+                    Wait, I put MetricsDashboard on the LEFT panel (replacing IDE).
+                    So what goes on RIGHT panel in Stage 9?
+                    Maybe a giant Trophy or just keep the Phone?
+                    Let's keep the Phone on the right to show the "Result" while metrics show the "Data".
+                */}
+            {stage === 9 && (
+              <motion.div
+                key="mobile-final"
+                initial={{ x: 50, opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                transition={{ duration: 0.5 }}
+              >
+                <MobileSimulator state='premium' />
+              </motion.div>
+            )}
+
           </AnimatePresence>
 
         </div>
