@@ -1,9 +1,21 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { FileText, Bug, CheckCircle2 } from 'lucide-react'
+import { generateCrashReport } from '@/lib/gemini'
 
 export default function InstantRCA() {
+    const [rcaText, setRcaText] = useState("Analyzing stack traces with Gemini 3.0 Pro...")
+
+    useEffect(() => {
+        let mounted = true
+        generateCrashReport("High CPU usage and battery drain in background service during v2 canary rollout").then(text => {
+            if (mounted) setRcaText(text)
+        })
+        return () => { mounted = false }
+    }, [])
+
     return (
         <motion.div
             initial={{ y: 50, opacity: 0 }}
@@ -31,14 +43,17 @@ export default function InstantRCA() {
                 </div>
 
                 <div className="p-4 bg-zinc-50 rounded-lg border border-zinc-200">
-                    <div className="font-bold text-zinc-700 mb-2 flex items-center">
-                        <Bug className="w-4 h-4 mr-2" />
-                        Root Cause Analysis
+                    <div className="font-bold text-zinc-700 mb-2 flex items-center justify-between">
+                        <div className="flex items-center">
+                            <Bug className="w-4 h-4 mr-2" />
+                            Root Cause Analysis
+                        </div>
+                        <div className="text-[10px] uppercase tracking-widest text-purple-600 border border-purple-200 px-2 py-0.5 rounded-full bg-purple-50">
+                            Gemini 3.0 Pro
+                        </div>
                     </div>
-                    <p className="text-zinc-600 leading-relaxed">
-                        Infinite loop detected in <code className="bg-zinc-200 px-1 rounded">BackgroundSyncWorker.kt</code>.
-                        The <code className="bg-zinc-200 px-1 rounded">while(true)</code> loop in <code className="bg-zinc-200 px-1 rounded">syncData()</code>
-                        lacks a termination condition when network is unstable.
+                    <p className="text-zinc-600 leading-relaxed text-sm animate-pulse">
+                        {rcaText}
                     </p>
                 </div>
 

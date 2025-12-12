@@ -23,7 +23,7 @@ export default function StageContainer({ children, currentStage }: StageContaine
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="z-10 w-full max-w-7xl h-[80vh]"
+                className="z-10 w-full max-w-7xl min-h-[80vh] h-auto py-8"
             >
                 {children}
             </motion.div>
