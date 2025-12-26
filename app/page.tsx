@@ -21,6 +21,7 @@ import ChaosMode from '@/components/OuterLoop/ChaosMode'
 import MultimodalInput from '@/components/InnerLoop/MultimodalInput'
 import { Sparkles, Zap, ArrowRight, Play, Rocket, CheckCircle2, XCircle, RotateCcw, BarChart3, Skull } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useSoundEffects } from '@/hooks/useSoundEffects'
 
 const CODE_STEP_1 = `
 @OptIn(ExperimentalMaterial3Api::class)
@@ -138,6 +139,9 @@ export default function Home() {
   // Phase 10: Multimodal State
   const [showMultimodal, setShowMultimodal] = useState(true)
 
+  // SFX Hooks
+  const { playScan, playType, playSuccess, playAlarm, playZap } = useSoundEffects()
+
   // Modals & Overlays
   const [showApproval, setShowApproval] = useState(false)
   const [thinkingMode, setThinkingMode] = useState<'gen' | 'fix' | 'refine' | 'pipeline' | null>(null)
@@ -233,6 +237,7 @@ export default function Home() {
       setPipelineHealing(false)
       setPipelineFailedStep(null) // Green again
       setLogStatus('success')
+      playSuccess() // SFX: Success Chime
 
       // Finish the rest
       setTimeout(() => {
@@ -252,12 +257,21 @@ export default function Home() {
     let t = 0
     const interval = setInterval(() => {
       t += 5
-      setCanaryTraffic(t)
+      setCanaryTraffic(traffic => {
+        if (traffic < 20) return traffic + 1
+        if (traffic === 20 && releaseStatus === 'monitor') {
+          setReleaseStatus('anomaly')
+          playAlarm() // SFX: Urgent Alarm
+        }
+        return traffic
+      })
 
-      // DRAMA: At 25%, trigger anomaly
+      // DRAMA: At 25%, trigger anomaly (original logic, adjusted for new traffic update)
       if (t >= 25) {
         clearInterval(interval)
-        setReleaseStatus('anomaly')
+        // The anomaly status might already be set by the traffic updater at 20.
+        // If not, ensure it's set here.
+        setReleaseStatus(prev => prev === 'monitor' ? 'anomaly' : prev)
 
         // Auto-Rollback after 2s
         setTimeout(() => {

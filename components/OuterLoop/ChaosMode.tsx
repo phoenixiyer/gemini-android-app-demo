@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Bug, ShieldCheck, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useSoundEffects } from '@/hooks/useSoundEffects'
 
 // Realistic Bug Labels
 const BUG_TYPES = [
@@ -33,8 +34,9 @@ export default function ChaosMode({ onComplete }: ChaosProps) {
     const [bugs, setBugs] = useState<BugEntity[]>([])
     const [score, setScore] = useState(0)
     const [fixes, setFixes] = useState<{ id: number; x: number; y: number; label: string }[]>([])
-    const [timeLeft, setTimeLeft] = useState(15)
+    const [timeLeft, setTimeLeft] = useState(7)
     const containerRef = useRef<HTMLDivElement>(null)
+    const { playZap } = useSoundEffects()
 
     // Countdown Timer
     useEffect(() => {
@@ -77,6 +79,7 @@ export default function ChaosMode({ onComplete }: ChaosProps) {
 
                 // Show "Fixed!" feedback
                 setFixes(prev => [...prev, { id: target.id, x: target.x, y: target.y, label: target.label }])
+                playZap() // SFX: Laser Zap
                 setTimeout(() => {
                     setFixes(prev => prev.filter(f => f.id !== target.id))
                 }, 800)
