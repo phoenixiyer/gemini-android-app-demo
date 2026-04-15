@@ -3,26 +3,37 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import StageContainer from '@/components/StageContainer'
+import LoopNavigator from '@/components/LoopNavigator'
+
+// Loops
+import DesignAnalysis from '@/components/DesignLoop/DesignAnalysis'
+import PipelineStatus from '@/components/SubmitLoop/PipelineStatus'
+import ShiftLeftDashboard from '@/components/SubmitLoop/ShiftLeftDashboard'
+import AssetDisplay from '@/components/IdeationLoop/AssetDisplay'
+import IdeationStage from '@/components/IdeationLoop/IdeationStage'
+
+// Inner Loop
 import VirtualIDE from '@/components/InnerLoop/VirtualIDE'
 import MobileSimulator from '@/components/InnerLoop/MobileSimulator'
-import PipelineVisualizer from '@/components/OuterLoop/PipelineVisualizer'
-import LogConsole from '@/components/OuterLoop/LogConsole'
 import ApprovalModal from '@/components/ApprovalModal'
 import GhostOverlay from '@/components/InnerLoop/GhostOverlay'
-import ThinkingCanvas from '@/components/InnerLoop/ThinkingCanvas'
 import ContextMatrix from '@/components/InnerLoop/ContextMatrix'
 import AgentSwarm from '@/components/InnerLoop/AgentSwarm'
 import ReasoningTree from '@/components/InnerLoop/ReasoningTree'
+import MultimodalInput from '@/components/InnerLoop/MultimodalInput'
+
+// Outer Loop
 import ReleaseMonitor from '@/components/OuterLoop/ReleaseMonitor'
 import AISentinel from '@/components/OuterLoop/AISentinel'
 import InstantRCA from '@/components/OuterLoop/InstantRCA'
 import MetricsDashboard from '@/components/OuterLoop/MetricsDashboard'
 import ChaosMode from '@/components/OuterLoop/ChaosMode'
-import MultimodalInput from '@/components/InnerLoop/MultimodalInput'
-import { Sparkles, Zap, ArrowRight, Play, Rocket, CheckCircle2, XCircle, RotateCcw, BarChart3, Skull } from 'lucide-react'
+
+import { Sparkles, Zap, Rocket, RotateCcw, BarChart3, Skull, ArrowRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useSoundEffects } from '@/hooks/useSoundEffects'
 
+// --- CONSTANTS (CODE SNIPPETS) ---
 const CODE_STEP_1 = `
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -116,40 +127,46 @@ fun PremiumTripCard(trip: Trip) {
 `
 
 export default function Home() {
-  // Stages:
-  // 1: Gen, 2: Heal, 3: Refine, 4: Deploy, 5: Fail (Logs), 6: Approvable, 7: Healed, 8: Installed/ShowOff, 9: Metrics
-  const [stage, setStage] = useState(1)
+  // Loop State
+  const [currentLoop, setCurrentLoop] = useState<'design' | 'inner' | 'submit' | 'outer'>('design')
+  const [assetStage, setAssetStage] = useState<'idea' | 'brd' | 'prd'>('idea')
+
+  // Inner Loop Stages: 1=Gen, 2=Crash, 3=Healed, 4=Premium
+  // Outer Loop Stages: 8=Canary, 9=Metrics
+  const [stage, setStage] = useState(0) // 0 used for Design Loop idle
+
   const [mobileState, setMobileState] = useState<'skeleton' | 'basic' | 'premium' | 'error' | 'install'>('skeleton')
   const [ideStatus, setIdeStatus] = useState<'idle' | 'analyzing' | 'fixing'>('idle')
   const [isTyping, setIsTyping] = useState(false)
   const [code, setCode] = useState(CODE_STEP_1)
 
-  // Pipeline / DevOps States
-  const [pipelineActive, setPipelineActive] = useState(false)
+  // Submit Loop State
+  const [pipelineStatus, setPipelineStatus] = useState<'idle' | 'running' | 'failed' | 'success'>('idle')
   const [pipelineFailedStep, setPipelineFailedStep] = useState<string | null>(null)
-  const [pipelineHealing, setPipelineHealing] = useState(false)
-  const [optimized, setOptimized] = useState(false)
-  const [logStatus, setLogStatus] = useState<'idle' | 'running' | 'error' | 'success'>('idle')
+  const [isHealingPipeline, setIsHealingPipeline] = useState(false)
 
-  // Phase 9: Outer Loop Intelligence
+  // Outer Loop State
   const [releaseStatus, setReleaseStatus] = useState<'idle' | 'monitor' | 'anomaly' | 'rollback' | 'rca'>('idle')
   const [canaryTraffic, setCanaryTraffic] = useState(0)
   const [chaosStats, setChaosStats] = useState<{ bugsFixed: number; timeSaved: string } | null>(null)
 
-  // Phase 10: Multimodal State
-  const [showMultimodal, setShowMultimodal] = useState(true)
-
-  // SFX Hooks
-  const { playScan, playType, playSuccess, playAlarm, playZap } = useSoundEffects()
-
-  // Modals & Overlays
+  // UX State
   const [showApproval, setShowApproval] = useState(false)
-  const [thinkingMode, setThinkingMode] = useState<'gen' | 'fix' | 'refine' | 'pipeline' | null>(null)
+  const [thinkingMode, setThinkingMode] = useState<'gen' | 'fix' | 'refine' | null>(null)
+  const { playSuccess, playAlarm } = useSoundEffects()
 
-  // 1. Generate & Crash (Triggered by Vision)
+  // --- TRANSITIONS ---
+
+  const [designComplete, setDesignComplete] = useState(false)
+
+  // 1. DESIGN LOOP COMPLETE -> INNER LOOP
+  const handleDesignComplete = () => {
+    setDesignComplete(true)
+  }
+
+  // 2. GENERATE (INNER)
   const handleGenerate = () => {
-    setShowMultimodal(false) // Hide input
-    // 1.5 Thinking Phase
+    setStage(1)
     setThinkingMode('gen')
     setTimeout(() => {
       setThinkingMode(null)
@@ -158,127 +175,107 @@ export default function Home() {
         setMobileState('basic')
         setIsTyping(false)
 
-        // DRAMA: To simulate user testing finding a bug, we crash shortly after
+        // AUTO CRASH
         setTimeout(() => {
           setMobileState('error')
           setCode(CODE_BUGGY)
           setStage(2)
         }, 3000)
       }, 2000)
-    }, 3000) // 3s Thinking
+    }, 2000)
   }
 
-  // 2. Auto-Heal (Inner Loop)
+  // 3. AUTO-HEAL (INNER)
   const handleAutoHeal = () => {
-    // 2.5 Thinking Phase
     setThinkingMode('fix')
     setTimeout(() => {
       setThinkingMode(null)
-
       setIdeStatus('analyzing')
       setTimeout(() => {
         setIdeStatus('fixing')
         setIsTyping(true)
         setCode(CODE_FIXED)
-
         setTimeout(() => {
           setIdeStatus('idle')
           setIsTyping(false)
-          setMobileState('basic') // Fixed!
+          setMobileState('basic')
           setStage(3)
         }, 2000)
       }, 1500)
-    }, 3000) // 3s Thinking
+    }, 2500)
   }
 
-  // 3. Make Premium
+  // 4. ENHANCE (INNER)
   const handleEnhance = () => {
-    // 3.5 Thinking Phase
     setThinkingMode('refine')
     setTimeout(() => {
       setThinkingMode(null)
-
       setCode(CODE_PREMIUM)
       setIsTyping(true)
       setTimeout(() => {
         setMobileState('premium')
         setIsTyping(false)
-        setStage(4) // Ready to deploy
+        setStage(4) // Ready for PR
       }, 2000)
-    }, 3000) // 3s Thinking
-  }
-
-  // 4. Deploy & Fail
-  const handleDeploy = () => {
-    setStage(5) // Outer Loop View
-    setPipelineActive(true)
-    setLogStatus('running')
-
-    // DRAMA: Fail at Step 2 (Unit Tests)
-    setTimeout(() => {
-      setPipelineFailedStep('unit')
-      setLogStatus('error')
-      // Prompt for Human Approval
-      setTimeout(() => {
-        setShowApproval(true)
-        setStage(6)
-      }, 1500)
     }, 2500)
   }
 
-  // 5. Human Approves Fix
-  const handleApproveFix = () => {
-    setShowApproval(false)
+  // 5. SUBMIT LOOP (PR/CI)
+  const handleSubmit = () => {
+    setCurrentLoop('submit')
+    setPipelineStatus('running')
 
-    // 5.5 Thinking Phase (DevOps)
-    setPipelineHealing(true)
-
+    // Simulate Fail at PreSubmit
     setTimeout(() => {
-      setPipelineHealing(false)
-      setPipelineFailedStep(null) // Green again
-      setLogStatus('success')
-      playSuccess() // SFX: Success Chime
-
-      // Finish the rest
-      setTimeout(() => {
-        setOptimized(true)
-        setStage(7) // Done
-      }, 2000)
-    }, 1500)
+      setPipelineFailedStep('auto-qa')
+      setPipelineStatus('failed')
+    }, 3000)
   }
 
-  // 6. Go to App Store (Actually trigger Canary Simulation)
-  const handleFinish = () => {
-    setStage(8) // "Experience It" / "Release Mode"
+  // 6. FIX PIPELINE
+  const handleReviewFix = () => {
+    setShowApproval(false) // Close modal
+    setIsHealingPipeline(true)
+    setTimeout(() => {
+      setIsHealingPipeline(false)
+      setPipelineFailedStep(null)
+      setPipelineStatus('success')
+      playSuccess()
+
+      // Auto transition to Outer after success?
+      // Let's force user to click "Deploy" or auto-transition
+      setTimeout(() => {
+        setCurrentLoop('outer')
+        handleStartCanary()
+      }, 2000)
+    }, 2000)
+  }
+
+  // 7. OUTER LOOP (CANARY)
+  const handleStartCanary = () => {
+    setStage(8)
     setReleaseStatus('monitor')
     setCanaryTraffic(0)
 
-    // Simulate Traffic Ramp
     let t = 0
     const interval = setInterval(() => {
       t += 5
-      setCanaryTraffic(traffic => {
-        if (traffic < 20) return traffic + 1
-        if (traffic === 20 && releaseStatus === 'monitor') {
+      setCanaryTraffic(prev => {
+        if (prev < 20) return prev + 1
+        if (prev === 20 && releaseStatus === 'monitor') {
           setReleaseStatus('anomaly')
-          playAlarm() // SFX: Urgent Alarm
+          playAlarm()
         }
-        return traffic
+        return prev
       })
 
-      // DRAMA: At 25%, trigger anomaly (original logic, adjusted for new traffic update)
       if (t >= 25) {
         clearInterval(interval)
-        // The anomaly status might already be set by the traffic updater at 20.
-        // If not, ensure it's set here.
         setReleaseStatus(prev => prev === 'monitor' ? 'anomaly' : prev)
 
-        // Auto-Rollback after 2s
         setTimeout(() => {
           setReleaseStatus('rollback')
-          setCanaryTraffic(0) // Rollback traffic
-
-          // Show RCA after rollback completes
+          setCanaryTraffic(0)
           setTimeout(() => {
             setReleaseStatus('rca')
           }, 3000)
@@ -287,348 +284,211 @@ export default function Home() {
     }, 400)
   }
 
-  // 7. Install & Reset Flow (Used during normal mobile install simulation on right panel, if we ever used it there)
-  const handleInstall = () => {
-    setTimeout(() => {
-      setMobileState('premium')
-    }, 2500)
-  }
-
-  // 8. View Metrics
-  const handleViewMetrics = () => {
-    setStage(9)
-  }
-
-  // 9. Activate Chaos
-  const handleChaos = () => {
-    setChaosStats(null) // Reset previous stats
-    setStage(11) // Hidden Stage 11
-  }
-
-  // 10. Handle Chaos Completion
-  const handleChaosComplete = (stats: { bugsFixed: number; timeSaved: string }) => {
-    setChaosStats(stats)
-    setStage(12) // Transition to Post-Chaos ROI screen
-  }
-
   const handleReset = () => {
-    setStage(1)
+    setCurrentLoop('design')
+    setStage(0)
     setMobileState('skeleton')
     setCode(CODE_STEP_1)
-    setPipelineActive(false)
+    setPipelineStatus('idle')
     setPipelineFailedStep(null)
-    setOptimized(false)
-    setLogStatus('idle')
-    setThinkingMode(null)
     setReleaseStatus('idle')
-    setCanaryTraffic(0)
-    setShowMultimodal(true)
+    setThinkingMode(null)
   }
 
   return (
     <StageContainer currentStage={stage}>
-
       <ApprovalModal
         isOpen={showApproval}
-        onApprove={handleApproveFix}
+        onApprove={handleReviewFix}
         onReject={() => setShowApproval(false)}
       />
 
-      <div className="grid grid-cols-12 gap-8 h-full">
+      {/* TOP NAVIGATOR */}
+      <div className="absolute top-0 left-0 w-full z-50">
+        <LoopNavigator currentLoop={currentLoop} />
+      </div>
 
-        {/* LEFT PANEL: CONTEXT / IDE */}
-        <div className="col-span-12 lg:col-span-7 flex flex-col h-full max-h-[85vh]">
+      <div className="grid grid-cols-12 gap-8 h-full pt-16">
 
-          {/* Header Text */}
+        {/* LEFT PANEL */}
+        <div className="col-span-12 lg:col-span-7 flex flex-col h-full max-h-[80vh]">
+
+          {/* Header */}
           <div className="mb-4">
             <motion.div
-              key={stage}
+              key={currentLoop + stage}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
             >
               <h1 className="text-4xl font-bold text-white mb-2">
-                {stage === 9 ? "Business Impact" :
-                  stage === 1 ? "The Inner Loop" :
-                    stage === 2 ? <span className="text-red-500">System Failure</span> :
-                      stage === 3 ? "Refining UI" :
-                        stage === 8 ? "Canary Release" :
-                          "The Outer Loop"}
+                {currentLoop === 'design' && "The Design Loop"}
+                {currentLoop === 'inner' && stage === 2 ? <span className="text-red-500">System Failure</span> :
+                  currentLoop === 'inner' && stage === 3 ? "Refining Code" :
+                    currentLoop === 'inner' && stage === 4 ? "Ready to Ship" :
+                      currentLoop === 'inner' ? "The Inner Loop" : ""}
+                {currentLoop === 'submit' && "The Submit Loop"}
+                {currentLoop === 'outer' && stage === 9 ? "Business Impact" :
+                  currentLoop === 'outer' ? "The Outer Loop" : ""}
               </h1>
               <p className="text-slate-400">
-                {stage === 1 && "Start by dropping a design or sketch to generate code."}
-                {stage === 2 && "Runtime exception detected. Analyzing stack trace..."}
-                {stage === 3 && "Iterate on design and UX instantly."}
-                {stage === 4 && "Ready for production release."}
-                {stage === 5 && "Pipeline stalled. Inspecting logs..."}
-                {stage === 6 && "AI Proposal: Human review required."}
-                {stage === 7 && "Deployment successful. Architecture optimized."}
-                {stage === 8 && "Monitoring canary rollout stability..."}
-                {stage === 9 && "Quantifying the value of AI Native development."}
+                {currentLoop === 'design' && "Analyze requirements and plan the architecture."}
+                {currentLoop === 'inner' && stage === 2 && "Runtime crash detected. Diagnosing with Gemini..."}
+                {currentLoop === 'inner' && stage === 4 && "Features implemented. Requesting Code Review."}
+                {currentLoop === 'submit' && "Running CI/CD pipeline and PreSubmit checks."}
+                {currentLoop === 'outer' && stage === 8 && "Monitoring canary deployment in production."}
+                {currentLoop === 'outer' && stage === 9 && "Quantifying the value of AI Native development."}
               </p>
             </motion.div>
           </div>
 
-          {/* Content Area */}
-          <div className="flex-1 relative overflow-y-auto scrollbar-hide min-h-[300px] mb-4">
-            {/* Thinking Overlay & Ghost Contrast */}
-            <AnimatePresence>
-              {thinkingMode && (
-                <>
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="absolute inset-0 z-50 rounded-xl overflow-hidden"
-                  >
-                    {/* Dynamic Visualizer based on Mode */}
-                    {thinkingMode === 'gen' ? (
-                      <ContextMatrix />
-                    ) : thinkingMode === 'fix' ? (
-                      <AgentSwarm />
-                    ) : (
-                      <ReasoningTree />
-                    )}
-                  </motion.div>
+          {/* Main Content Area */}
+          <div className="flex-1 relative overflow-hidden rounded-xl bg-white/5 border border-white/10 p-4">
 
-                  {/* Contrast: The Old Way (Always show Ghost) */}
-                  <motion.div
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    className="absolute top-4 right-4 z-[60]"
-                  >
-                    <GhostOverlay mode={thinkingMode} />
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
+            {/* DESIGN LOOP VIEW */}
+            {currentLoop === 'design' && (
+              <DesignAnalysis 
+                onComplete={handleDesignComplete} 
+                onStepChange={setAssetStage} 
+              />
+            )}
 
-            {/* Phase 10: Multimodal Overlay */}
-            <AnimatePresence>
-              {stage === 1 && showMultimodal && !thinkingMode && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  className="absolute inset-0 z-40 flex items-center justify-center p-4 backdrop-blur-sm"
-                >
-                  <MultimodalInput onScanComplete={handleGenerate} />
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {/* INNER LOOP VIEW */}
+            {currentLoop === 'inner' && (
+              <>
+                {/* Thinking Overlay */}
+                <AnimatePresence>
+                  {thinkingMode && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 z-50 bg-black/80 flex items-center justify-center backdrop-blur-sm"
+                    >
+                      {thinkingMode === 'gen' && <ContextMatrix />}
+                      {thinkingMode === 'fix' && <AgentSwarm />}
+                      {thinkingMode === 'refine' && <ReasoningTree />}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
 
-            {/* Display Logic Switch */}
-            {stage === 8 && releaseStatus !== 'idle' ? (
-              // Phase 9: Intelligent Outer Loop Visualization
-              <div className="w-full h-full flex items-center justify-center relative">
-                {releaseStatus === 'monitor' || releaseStatus === 'anomaly' || releaseStatus === 'rollback' ? (
-                  <>
-                    <ReleaseMonitor trafficV2={canaryTraffic} isAnomaly={releaseStatus === 'anomaly'} />
-                    <AISentinel status={releaseStatus === 'monitor' ? 'scanning' : releaseStatus === 'anomaly' ? 'detected' : 'rollback'} />
-                  </>
+                {/* Editor */}
+                <VirtualIDE code={code} isTyping={isTyping} status={ideStatus} />
+              </>
+            )}
+
+            {/* SUBMIT LOOP VIEW */}
+            {currentLoop === 'submit' && (
+              <div className="h-full flex items-center justify-center">
+                <ShiftLeftDashboard onComplete={() => {
+                  setTimeout(() => {
+                    setCurrentLoop('outer')
+                    handleStartCanary()
+                  }, 1000)
+                }} />
+              </div>
+            )}
+
+            {/* OUTER LOOP VIEW */}
+            {currentLoop === 'outer' && (
+              <div className="h-full flex items-center justify-center relative">
+                {stage === 9 ? (
+                  <MetricsDashboard />
+                ) : stage === 11 ? (
+                  <ChaosMode onComplete={(stats) => {
+                    setChaosStats(stats)
+                    setStage(12)
+                  }} />
+                ) : stage === 12 && chaosStats ? (
+                  <div className="w-full h-full flex flex-col items-center justify-center space-y-6 p-8 bg-gradient-to-br from-green-950/50 to-slate-900 rounded-xl border border-green-500/30">
+                    <div className="text-green-400 font-mono uppercase tracking-widest text-sm">Runtime Protection Report</div>
+                    <div className="text-6xl font-bold text-white">{chaosStats.bugsFixed}</div>
+                    <div className="text-slate-400 text-lg">Vulnerabilities Neutralized</div>
+                    <div className="text-4xl font-bold text-green-400">{chaosStats.timeSaved}</div>
+                    <div className="text-slate-400">Future Incident Costs Avoided</div>
+                    <button onClick={handleReset} className="mt-4 px-6 py-3 bg-slate-700 hover:bg-slate-600 rounded-full font-bold text-white">Restart Demo</button>
+                  </div>
                 ) : (
-                  <InstantRCA />
+                  releaseStatus === 'monitor' || releaseStatus === 'anomaly' || releaseStatus === 'rollback' ? (
+                    <>
+                      <ReleaseMonitor trafficV2={canaryTraffic} isAnomaly={releaseStatus === 'anomaly'} />
+                      <AISentinel status={releaseStatus === 'monitor' ? 'scanning' : releaseStatus === 'anomaly' ? 'detected' : 'rollback'} />
+                    </>
+                  ) : (
+                    <InstantRCA />
+                  )
                 )}
               </div>
-            ) : stage === 9 ? (
-              <MetricsDashboard />
-            ) : stage === 11 ? (
-              <ChaosMode onComplete={handleChaosComplete} />
-            ) : stage === 12 && chaosStats ? (
-              <div className="w-full h-full flex flex-col items-center justify-center space-y-6 p-8 bg-gradient-to-br from-green-950/50 to-slate-900 rounded-xl border border-green-500/30">
-                <div className="text-green-400 font-mono uppercase tracking-widest text-sm">Runtime Protection Report</div>
-                <div className="text-6xl font-bold text-white">{chaosStats.bugsFixed}</div>
-                <div className="text-slate-400 text-lg">Vulnerabilities Neutralized</div>
-                <div className="text-4xl font-bold text-green-400">{chaosStats.timeSaved}</div>
-                <div className="text-slate-400">Future Incident Costs Avoided</div>
-                <button onClick={handleReset} className="mt-4 px-6 py-3 bg-slate-700 hover:bg-slate-600 rounded-full font-bold text-white">Restart Demo</button>
-              </div>
-            ) : stage < 5 ? (
-              <VirtualIDE
-                code={code}
-                isTyping={isTyping}
-                status={ideStatus}
-              />
-            ) : (
-              <div className="h-full flex flex-col space-y-4">
-                <PipelineVisualizer
-                  isActive={pipelineActive}
-                  optimizationEnabled={optimized}
-                  failedStep={pipelineFailedStep}
-                  isHealing={pipelineHealing}
-                />
-              </div>
             )}
           </div>
 
-          {/* Controls */}
-          <div className="h-20 shrink-0 flex items-center justify-between">
+          {/* CONTROLS */}
+          <div className="h-20 shrink-0 flex items-center justify-between mt-4">
+            <button onClick={handleReset} className="p-3 rounded-full hover:bg-white/10 text-slate-400">
+              <RotateCcw className="w-5 h-5" />
+            </button>
+
             <div className="flex items-center space-x-4">
-              {/* Back Button for Navigation Safety */}
-              {stage > 1 && (
-                <button
-                  onClick={() => setStage(stage - 1)}
-                  className="p-3 bg-slate-800 hover:bg-slate-700 rounded-full text-slate-300 transition-all"
-                  title="Go Back"
-                >
-                  <ArrowRight className="w-5 h-5 rotate-180" />
+              {currentLoop === 'design' && designComplete && (
+                <button onClick={() => {
+                  setDesignComplete(false)
+                  setCurrentLoop('inner')
+                  handleGenerate()
+                }} className="flex items-center space-x-2 bg-cyan-600 hover:bg-cyan-500 text-white px-6 py-3 rounded-full font-bold animate-pulse">
+                  <ArrowRight className="w-5 h-5" /> <span>Proceed to Inner Loop</span>
                 </button>
               )}
-
-              {/* Reset Button */}
-              {stage > 4 && (
-                <button
-                  onClick={handleReset}
-                  className="p-3 bg-slate-800 hover:bg-slate-700 rounded-full text-red-300 transition-all border border-red-900/30"
-                  title="Restart Demo"
-                >
-                  <RotateCcw className="w-5 h-5" />
+              {currentLoop === 'inner' && stage === 2 && (
+                <button onClick={handleAutoHeal} className="flex items-center space-x-2 bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-full font-bold">
+                  <Zap className="w-5 h-5" /> <span>Fix Crash</span>
                 </button>
               )}
-            </div>
-
-            {/* Primary Action Button */}
-            <div className="flex items-center space-x-4">
-              {stage === 1 && mobileState !== 'error' && !showMultimodal && (
-                <button
-                  onClick={handleGenerate}
-                  disabled={thinkingMode !== null}
-                  className={cn("flex items-center space-x-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-full font-bold transition-all shadow-[0_0_20px_rgba(37,99,235,0.5)]", thinkingMode && "opacity-50 cursor-wait")}
-                >
-                  {thinkingMode ? <Sparkles className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
-                  <span>{thinkingMode ? "Thinking..." : "Generate UI"}</span>
+              {currentLoop === 'inner' && stage === 3 && (
+                <button onClick={handleEnhance} className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-full font-bold">
+                  <Sparkles className="w-5 h-5" /> <span>Make Premium</span>
                 </button>
               )}
-
-              {/* Fallback control if stuck in Multimodal but want to bypass? No, let's keep it clean. */}
-
-              {stage === 2 && (
-                <button
-                  onClick={handleAutoHeal}
-                  disabled={thinkingMode !== null}
-                  className={cn("flex items-center space-x-2 bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-full font-bold transition-all shadow-[0_0_20px_rgba(220,38,38,0.5)]", thinkingMode && "opacity-50 cursor-wait animate-none")}
-                >
-                  {thinkingMode ? <Zap className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5" />}
-                  <span>{thinkingMode ? "Analyzing..." : "Auto-Fix Crash"}</span>
+              {currentLoop === 'inner' && stage === 4 && (
+                <button onClick={handleSubmit} className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-full font-bold">
+                  <Rocket className="w-5 h-5" /> <span>Submit PR</span>
                 </button>
               )}
-
-              {stage === 3 && (
-                <button
-                  onClick={handleEnhance}
-                  disabled={thinkingMode !== null}
-                  className={cn("flex items-center space-x-2 bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-full font-bold transition-all shadow-[0_0_20px_rgba(147,51,234,0.5)]", thinkingMode && "opacity-50 cursor-wait")}
-                >
-                  {thinkingMode ? <Zap className="w-5 h-5 animate-spin" /> : <Zap className="w-5 h-5" />}
-                  <span>{thinkingMode ? "Enhancing..." : "Make it Premium"}</span>
+              {currentLoop === 'outer' && releaseStatus === 'rca' && (
+                <button onClick={() => setStage(9)} className="flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-green-500 text-white px-6 py-3 rounded-full font-bold animate-bounce">
+                  <BarChart3 className="w-5 h-5" /> <span>View ROI</span>
                 </button>
               )}
-
-              {stage === 4 && (
-                <button
-                  onClick={handleDeploy}
-                  className="flex items-center space-x-2 bg-green-600 hover:bg-green-500 text-white px-6 py-3 rounded-full font-bold transition-all shadow-[0_0_20px_rgba(22,163,74,0.5)]"
-                >
-                  <Rocket className="w-5 h-5" />
-                  <span>Deploy to Production</span>
+              {currentLoop === 'outer' && stage === 9 && (
+                <button onClick={() => setStage(11)} className="flex items-center space-x-2 bg-red-900/50 hover:bg-red-900 text-red-200 px-6 py-3 rounded-full font-bold border border-red-500/50 animate-pulse">
+                  <Skull className="w-5 h-5" /> <span>Activate Chaos</span>
                 </button>
-              )}
-
-              {stage === 7 && (
-                <button
-                  onClick={handleFinish}
-                  className="flex items-center space-x-2 bg-white text-black hover:bg-slate-200 px-6 py-3 rounded-full font-bold transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)]"
-                >
-                  <Rocket className="w-5 h-5" />
-                  <span>Start Canary Release</span>
-                </button>
-              )}
-
-              {stage === 8 && releaseStatus === 'rca' && (
-                <button
-                  onClick={handleViewMetrics}
-                  className="flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-green-500 text-white px-6 py-3 rounded-full font-bold transition-all shadow-lg animate-bounce"
-                >
-                  <BarChart3 className="w-5 h-5" />
-                  <span>View ROI Dashboard</span>
-                </button>
-              )}
-
-              {stage === 9 && (
-                <div className="flex space-x-3">
-                  <button
-                    onClick={handleChaos}
-                    className="flex items-center space-x-2 bg-red-900/50 hover:bg-red-900 text-red-200 px-6 py-3 rounded-full font-bold transition-all border border-red-500/50 animate-pulse"
-                  >
-                    <Skull className="w-5 h-5" />
-                    <span>Activate Chaos</span>
-                  </button>
-                  <button
-                    onClick={handleReset}
-                    className="flex items-center space-x-2 bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-full font-bold transition-all"
-                  >
-                    <RotateCcw className="w-5 h-5" />
-                    <span>Restart</span>
-                  </button>
-                </div>
               )}
             </div>
           </div>
-        </div> {/* This closes the "Left Panel" div */}
+        </div>
 
-        {/* RIGHT PANEL: VISUALIZATION */}
+        {/* RIGHT PANEL (MOBILE / LOGS) */}
         <div className="col-span-12 lg:col-span-5 flex items-center justify-center relative">
-
-          {/* Background Glow */}
-          <div className={cn(
-            "absolute inset-0 blur-[100px] rounded-full pointer-events-none transition-colors duration-1000",
-            stage === 2 ? "bg-red-600/20" : "bg-blue-500/20"
-          )} />
+          {/* Visual Consistency: Always show Phone except when relevant not to? */}
+          {/* In Design Loop: Show nothing or sketch? */}
+          {/* In Submit/Outer Loop: Keep phone visible as "Preview"? */}
 
           <AnimatePresence mode="wait">
-            {/* SHOW PHONE: Stages 1, 2, 3, 4, 7 (Success) */}
-            {(stage < 5 || stage === 7) && (
-              <motion.div
-                key="mobile"
-                initial={{ x: 50, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{ x: 100, opacity: 0 }}
-                transition={{ duration: 0.5 }}
-              >
-                <MobileSimulator state={mobileState} onInstall={handleInstall} />
-              </motion.div>
-            )}
-
-            {/* SHOW LOGS: Stages 5, 6 (Fail/Approval) */}
-            {(stage === 5 || stage === 6) && (
-              <motion.div
-                key="logs-right"
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
-                className="w-full h-[500px]"
-              >
-                <LogConsole status={logStatus} />
-              </motion.div>
-            )}
-
-            {/* Stage 8 + 9: Keep Mobile on Right */}
-            {(stage === 8 || stage === 9) && (
-              <motion.div
-                key="mobile-final"
-                initial={{ x: 50, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                transition={{ duration: 0.5 }}
-              >
-                <MobileSimulator state='premium' />
-              </motion.div>
-            )}
-
+            <motion.div
+              key={currentLoop === 'design' ? 'assets' : 'mobile'}
+              initial={{ x: 50, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 50, opacity: 0 }}
+            >
+              {currentLoop === 'design' ? (
+                <AssetDisplay stage={assetStage} />
+              ) : (
+                <MobileSimulator state={mobileState} />
+              )}
+            </motion.div>
           </AnimatePresence>
-
         </div>
 
       </div>
-    </StageContainer >
+    </StageContainer>
   )
 }
