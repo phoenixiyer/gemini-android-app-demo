@@ -1,19 +1,21 @@
-# Gemini AIOps & Autonomous SRE Demo
+# Google Developer Productivity Tools: End-to-End Agentic AI Demo
 
-Welcome to the Gemini AIOps & Autonomous SRE Demo! This repository showcases an interactive, React-based web application simulation highlighting the integration of AI-driven tools in various software development and operational lifecycle phases. 
+Welcome to the End-to-End Agentic AI Transformation Demo! This repository showcases an interactive, React-based web application simulation that highlights the integration of **Google's Developer Productivity Tool Stack** across all software development and operational lifecycle phases.
 
-The demo illustrates how Gemini (Google's AI model) can transform the developer experience through its intelligence in design, coding (Inner loop), CI/CD (Submit loop), and production operations (Outer loop).
+This demo illustrates how Google's AI-driven tools comprehensive transform the developer experience through intelligence in design, coding, CI/CD, and production operations via an agentic approach.
 
-## Features
+## Featured Tool Stack
 
-- **Interactive UI Lifecycle Simulation**: Walk through distinct "loops" of the software development lifecycle:
-   - **The Design Loop**: Emulates requirement analysis and architectural planning.
-   - **The Inner Loop**: Interactive virtual IDE with simulated code generation, crash detection, context-aware auto-healing, and code refinement/enhancement (e.g., adding "Premium" visual flair).
-   - **The Submit Loop**: Shows CI/CD pipeline automation, automated PR reviews, and AI-assisted pipeline healing.
-   - **The Outer Loop (SRE Agent)**: Simulates dynamic production monitoring, anomaly detection, autonomous rollback, and RCA (Root Cause Analysis) generation using the Gemini Autonomous SRE Agent. Includes a Chaos Mode for stress testing.
+This simulation maps specific Google AI capabilities to distinct "loops" of the software development lifecycle:
 
-## Tech Stack
+- **The Design Loop** (`Gemini CLI`): Emulates requirement analysis, documentation synthesis, and architectural planning.
+- **The Inner Loop** (`Gemini Code Assist`): Features an interactive virtual IDE demonstrating code generation, real-time crash detection, context-aware auto-healing, and intelligent code refinement (e.g., adding "Premium" visual flair).
+- **The Submit Loop** (`Gemini Code Assist Agent in GitHub` & `Gemini CLI`): Simulates CI/CD pipeline automation, automated Pull Request reviews, and AI-assisted pipeline healing before code reaches production.
+- **The Outer Loop** (`Gemini CLI - Autonomous SRE Agent`): Simulates dynamic production monitoring, anomaly detection, autonomous canary rollbacks, and Root Cause Analysis (RCA) generation. Includes a Chaos Mode for stress testing.
 
+## Demo Tech Stack
+
+The interactive visual simulation itself is built using:
 - [Next.js](https://nextjs.org/) (App Router)
 - [React 19](https://react.dev/)
 - [Tailwind CSS 4](https://tailwindcss.com/)
@@ -45,11 +47,11 @@ The demo illustrates how Gemini (Google's AI model) can transform the developer 
    ```
 
 3. Setup Environment Variables:
-   If you plan to use actual Gemini API integrations natively (though the current UI relies largely on simulated visual orchestrations), create a `.env.local` file at the root:
+   Create a `.env.local` file at the root to enable actual Gemini API integrations natively:
    ```env
    GOOGLE_API_KEY=your_gemini_api_key_here
    ```
-   *(Note: The `.gitignore` is configured to ignore `.env*` files, keeping your secrets secure.)*
+   *(Note: The `.gitignore` is properly configured to ignore `.env*` files, keeping your secrets secure locally.)*
 
 4. Start the development server:
    ```bash
@@ -58,7 +60,7 @@ The demo illustrates how Gemini (Google's AI model) can transform the developer 
    yarn dev
    ```
 
-5. Open [http://localhost:3000](http://localhost:3000) with your browser to see the outcome.
+5. Open [http://localhost:3000](http://localhost:3000) with your browser to experience the demo.
 
 ## Project Structure
 
@@ -68,13 +70,12 @@ The demo illustrates how Gemini (Google's AI model) can transform the developer 
   - `InnerLoop/`: Virtual IDE, Code simulations, AI healing UI.
   - `SubmitLoop/`: Pipeline execution and Shift-Left dashboard UI.
   - `OuterLoop/`: The Gemini SRE Agent dashboard, Metrics, and Chaos mode.
-- `hooks/`: Custom React hooks (like sound utilities).
-- `lib/`: Utility functions (e.g., specific tailwind class mergers).
+- `hooks/`: Custom React hooks.
+- `lib/`: Utility functions.
 
 ## Contributing
 
-We welcome contributions to make this demo even more robust! Be sure adhering to the standard Next.js conventions and keeping UI components functional and self-contained. 
-Since this intends to be a demonstration tool, feel free to open Pull Requests for new visual phases, better AI prompts, or expanding the SRE feature set!
+We welcome contributions to make this demo even more robust! We adhere to standard Next.js conventions. Feel free to open Pull Requests for new visual phases, improved simulation flows, or expanding the Autonomous SRE feature set!
 
 ## License
 
