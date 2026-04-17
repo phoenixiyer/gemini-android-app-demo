@@ -10,6 +10,7 @@ import DesignAnalysis from '@/components/DesignLoop/DesignAnalysis'
 import PipelineStatus from '@/components/SubmitLoop/PipelineStatus'
 import ShiftLeftDashboard from '@/components/SubmitLoop/ShiftLeftDashboard'
 import AssetDisplay from '@/components/IdeationLoop/AssetDisplay'
+import SREAgent from '@/components/OuterLoop/SREAgent'
 import IdeationStage from '@/components/IdeationLoop/IdeationStage'
 
 // Inner Loop
@@ -393,29 +394,8 @@ export default function Home() {
               <div className="h-full flex items-center justify-center relative">
                 {stage === 9 ? (
                   <MetricsDashboard />
-                ) : stage === 11 ? (
-                  <ChaosMode onComplete={(stats) => {
-                    setChaosStats(stats)
-                    setStage(12)
-                  }} />
-                ) : stage === 12 && chaosStats ? (
-                  <div className="w-full h-full flex flex-col items-center justify-center space-y-6 p-8 bg-gradient-to-br from-green-950/50 to-slate-900 rounded-xl border border-green-500/30">
-                    <div className="text-green-400 font-mono uppercase tracking-widest text-sm">Runtime Protection Report</div>
-                    <div className="text-6xl font-bold text-white">{chaosStats.bugsFixed}</div>
-                    <div className="text-slate-400 text-lg">Vulnerabilities Neutralized</div>
-                    <div className="text-4xl font-bold text-green-400">{chaosStats.timeSaved}</div>
-                    <div className="text-slate-400">Future Incident Costs Avoided</div>
-                    <button onClick={handleReset} className="mt-4 px-6 py-3 bg-slate-700 hover:bg-slate-600 rounded-full font-bold text-white">Restart Demo</button>
-                  </div>
                 ) : (
-                  releaseStatus === 'monitor' || releaseStatus === 'anomaly' || releaseStatus === 'rollback' ? (
-                    <>
-                      <ReleaseMonitor trafficV2={canaryTraffic} isAnomaly={releaseStatus === 'anomaly'} />
-                      <AISentinel status={releaseStatus === 'monitor' ? 'scanning' : releaseStatus === 'anomaly' ? 'detected' : 'rollback'} />
-                    </>
-                  ) : (
-                    <InstantRCA />
-                  )
+                  <SREAgent onReset={handleReset} />
                 )}
               </div>
             )}
@@ -452,7 +432,7 @@ export default function Home() {
                   <Rocket className="w-5 h-5" /> <span>Submit PR</span>
                 </button>
               )}
-              {currentLoop === 'outer' && releaseStatus === 'rca' && (
+              {currentLoop === 'outer' && (
                 <button onClick={() => setStage(9)} className="flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-green-500 text-white px-6 py-3 rounded-full font-bold animate-bounce">
                   <BarChart3 className="w-5 h-5" /> <span>View ROI</span>
                 </button>
